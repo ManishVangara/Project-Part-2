@@ -72,6 +72,55 @@ CREATE TABLE UserSessions(
     CONSTRAINT fk_user_session FOREIGN KEY (username) REFERENCES Users(username) ON DELETE CASCADE
 );
 
+---------------------------------------- TRIGGERS ----------------------------------------
+-- DROP TRIGGER IF EXISTS student_id_trigger;
+-- DROP TRIGGER IF EXISTS student_type_trigger;
+
+--- Trigger for student id auto generation ---
+CREATE OR REPLACE TRIGGER student_id_trigger
+BEFORE INSERT ON StudentUsers
+FOR EACH ROW
+DECLARE
+  max_id NUMBER; -- To store the numeric part of the max ID
+  new_id NUMBER; -- To store the new numeric ID
+  first_initial CHAR(1); -- First letter of first name
+  last_initial CHAR(1); -- First letter of last name
+BEGIN
+  -- Fetch the initials from the Users table based on username
+  SELECT SUBSTR(first_name, 1, 1), SUBSTR(last_name, 1, 1)
+  INTO first_initial, last_initial
+  FROM Users
+  WHERE username = :NEW.username;
+
+  -- Get the maximum numeric ID from the existing student_ids
+  SELECT NVL(MAX(TO_NUMBER(SUBSTR(student_id, 3))), 0) INTO max_id
+  FROM StudentUsers;
+
+  -- Compute the next ID
+  new_id := max_id + 1;
+
+  -- Assign the new ID in the format XX12345
+  :NEW.student_id := first_initial || last_initial || LPAD(new_id, 5, '0');
+END;
+/
+
+-- Trigger for automatically updating UnderGrad or Grad table
+CREATE OR REPLACE TRIGGER student_type_trigger
+AFTER INSERT ON StudentUsers
+FOR EACH ROW
+BEGIN
+  IF :NEW.student_type = 0 THEN
+    -- Insert into UnderGrad table for undergrad students
+    INSERT INTO UnderGrad (student_id, standing)
+    VALUES (:NEW.student_id, 'Freshman'); -- Default standing is 'Freshman'
+  ELSIF :NEW.student_type = 1 THEN
+    -- Insert into Grad table for grad students
+    INSERT INTO Grad (student_id, concentration)
+    VALUES (:NEW.student_id, 'Undeclared'); -- Default concentration is 'Undeclared'
+  END IF;
+END;
+/
+
 
 
 ---------------------------------------- DATA INSERTION ----------------------------------------
@@ -124,54 +173,3 @@ VALUES ('tracy', TO_DATE('2021-06-01', 'YYYY-MM-DD'), 'Brooklyn Heights', 1, 'N'
 
 
 --- Data is automatically inserted into grad and undergrad
-
-
----------------------------------------- TRIGGERS ----------------------------------------
--- DROP TRIGGER IF EXISTS student_id_trigger;
--- DROP TRIGGER IF EXISTS student_type_trigger;
-
---- Trigger for student id auto generation ---
-CREATE OR REPLACE TRIGGER student_id_trigger
-BEFORE INSERT ON StudentUsers
-FOR EACH ROW
-DECLARE
-  max_id NUMBER; -- To store the numeric part of the max ID
-  new_id NUMBER; -- To store the new numeric ID
-  first_initial CHAR(1); -- First letter of first name
-  last_initial CHAR(1); -- First letter of last name
-BEGIN
-  -- Fetch the initials from the Users table based on username
-  SELECT SUBSTR(first_name, 1, 1), SUBSTR(last_name, 1, 1)
-  INTO first_initial, last_initial
-  FROM Users
-  WHERE username = :NEW.username;
-
-  -- Get the maximum numeric ID from the existing student_ids
-  SELECT NVL(MAX(TO_NUMBER(SUBSTR(student_id, 3))), 0) INTO max_id
-  FROM StudentUsers;
-
-  -- Compute the next ID
-  new_id := max_id + 1;
-
-  -- Assign the new ID in the format XX12345
-  :NEW.student_id := first_initial || last_initial || LPAD(new_id, 5, '0');
-END;
-/
-
--- Trigger for automatically updating UnderGrad or Grad table
-CREATE OR REPLACE TRIGGER student_type_trigger
-AFTER INSERT ON StudentUsers
-FOR EACH ROW
-BEGIN
-  IF :NEW.student_type = 0 THEN
-    -- Insert into UnderGrad table for undergrad students
-    INSERT INTO UnderGrad (student_id, standing)
-    VALUES (:NEW.student_id, 'Freshman'); -- Default standing is 'Freshman'
-  ELSIF :NEW.student_type = 1 THEN
-    -- Insert into Grad table for grad students
-    INSERT INTO Grad (student_id, concentration)
-    VALUES (:NEW.student_id, 'Undeclared'); -- Default concentration is 'Undeclared'
-  END IF;
-END;
-/
-
