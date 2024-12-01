@@ -7,6 +7,10 @@ DROP TABLE Grad CASCADE CONSTRAINTS;
 DROP TABLE UnderGrad CASCADE CONSTRAINTS;
 DROP TABLE StudentUsers CASCADE CONSTRAINTS;
 DROP TABLE Users CASCADE CONSTRAINTS;
+DROP TABLE Enrollment CASCADE CONSTRAINTS;
+DROP TABLE Section CASCADE CONSTRAINTS;
+DROP TABLE CoursePrerequisite CASCADE CONSTRAINTS;
+DROP TABLE Course CASCADE CONSTRAINTS;
 
 ---------------------------------------- TABLES ----------------------------------------
 
@@ -72,38 +76,6 @@ CREATE TABLE UserSessions(
     CONSTRAINT fk_user_session FOREIGN KEY (username) REFERENCES Users(username) ON DELETE CASCADE
 );
 
----------------------------------------- TRIGGERS ----------------------------------------
--- DROP TRIGGER IF EXISTS student_id_trigger;
--- DROP TRIGGER IF EXISTS student_type_trigger;
-
---- Trigger for student id auto generation ---
-CREATE OR REPLACE TRIGGER student_id_trigger
-BEFORE INSERT ON StudentUsers
-FOR EACH ROW
-DECLARE
-  max_id NUMBER; -- To store the numeric part of the max ID
-  new_id NUMBER; -- To store the new numeric ID
-  first_initial CHAR(1); -- First letter of first name
-  last_initial CHAR(1); -- First letter of last name
-BEGIN
-  -- Get the initials from the Users table based on username
-  SELECT SUBSTR(first_name, 1, 1), SUBSTR(last_name, 1, 1)
-  INTO first_initial, last_initial
-  FROM Users
-  WHERE username = :NEW.username;
-
-  -- Get the maximum number from the student_ids
-  SELECT NVL(MAX(TO_NUMBER(SUBSTR(student_id, 3))), 0) INTO max_id
-  FROM StudentUsers;
-
-  -- Calculate the next ID
-  new_id := max_id + 1;
-
-  -- New ID in the format XX12345
-  :NEW.student_id := first_initial || last_initial || LPAD(new_id, 5, '0');
-END;
-/
-
 -- Course Table
 CREATE TABLE Course(
     course_number VARCHAR2(10) PRIMARY KEY, -- Unique course identifier
@@ -141,6 +113,38 @@ CREATE TABLE Enrollment(
     CONSTRAINT fk_enrollment_student FOREIGN KEY (student_id) REFERENCES StudentUsers(student_id) ON DELETE CASCADE,
     CONSTRAINT fk_enrollment_section FOREIGN KEY (section_id) REFERENCES Section(section_id) ON DELETE CASCADE
 );
+
+---------------------------------------- TRIGGERS ----------------------------------------
+-- DROP TRIGGER IF EXISTS student_id_trigger;
+-- DROP TRIGGER IF EXISTS student_type_trigger;
+
+--- Trigger for student id auto generation ---
+CREATE OR REPLACE TRIGGER student_id_trigger
+BEFORE INSERT ON StudentUsers
+FOR EACH ROW
+DECLARE
+  max_id NUMBER; -- To store the numeric part of the max ID
+  new_id NUMBER; -- To store the new numeric ID
+  first_initial CHAR(1); -- First letter of first name
+  last_initial CHAR(1); -- First letter of last name
+BEGIN
+  -- Get the initials from the Users table based on username
+  SELECT SUBSTR(first_name, 1, 1), SUBSTR(last_name, 1, 1)
+  INTO first_initial, last_initial
+  FROM Users
+  WHERE username = :NEW.username;
+
+  -- Get the maximum number from the student_ids
+  SELECT NVL(MAX(TO_NUMBER(SUBSTR(student_id, 3))), 0) INTO max_id
+  FROM StudentUsers;
+
+  -- Calculate the next ID
+  new_id := max_id + 1;
+
+  -- New ID in the format XX12345
+  :NEW.student_id := first_initial || last_initial || LPAD(new_id, 5, '0');
+END;
+/
 
 
 -- Trigger for automatically updating UnderGrad or Grad table

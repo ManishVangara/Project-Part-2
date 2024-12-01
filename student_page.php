@@ -1,6 +1,6 @@
 <?php
 // Include necessary utility functions
-// include "utility_functions.php";
+include "utility_functions.php";
 
 // Get sessionid and username from the URL parameters
 $sessionid = $_GET["sessionid"];
@@ -9,7 +9,7 @@ $username = $_GET["username"];
 // Verify the session if needed
 // verify_session($sessionid);
 
-// Start HTML output
+// Start HTML
 ?>
 
 <!DOCTYPE html>
@@ -101,18 +101,19 @@ $username = $_GET["username"];
     </header>
 
     <div class="container">
-        <h2>Welcome <?php echo htmlspecialchars($username); ?></h2>
+        <h2>Welcome <?php echo $username; ?></h2>
 
         <?php
         // Form the query to fetch student information along with their undergrad/grad details
 
-        $sql = "SELECT u.username, u.first_name, u.last_name, su.address, su.student_type, su.probation_status, su.student_id"
-        ."CASE WHEN su.student_type = 0 THEN (SELECT standing FROM UnderGrad WHERE student_id = su.student_id)"
-        ."ELSE(SELECT concentration FROM Grad WHERE student_id = su.student_id)"
-        ."END AS status_or_concentration"
-        ."FROM Users u"
-        ."JOIN StudentUsers su ON u.username = su.username"
-        ."WHERE u.username = :username";
+        $sql = "SELECT u.username, u.first_name, u.last_name, su.address, su.student_type, su.probation_status, su.student_id, 
+                CASE WHEN su.student_type = 0 
+                    THEN (SELECT standing FROM UnderGrad WHERE student_id = su.student_id) 
+                    ELSE (SELECT concentration FROM Grad WHERE student_id = su.student_id) 
+                END AS status_or_concentration 
+                FROM Users u 
+                JOIN StudentUsers su ON u.username = su.username 
+                WHERE u.username = :username";
 
         // Execute the query
         $result_array = execute_sql_in_oracle($sql, [':username' => $username]);
