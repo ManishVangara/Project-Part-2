@@ -106,30 +106,7 @@ $username = $_GET["username"];
         <?php
         // Query to collect student academic information
 
-        $sql = "SELECT 
-                    su.username,
-                    COUNT(e.enrollment_id) AS courses_completed,
-                    SUM(c.credit_hours) AS total_credit_hours,
-                    CASE 
-                        WHEN SUM(c.credit_hours) > 0 THEN 
-                            SUM(e.grade * c.credit_hours) / SUM(c.credit_hours)
-                        ELSE 
-                            NULL 
-                    END AS gpa
-                FROM 
-                    StudentUsers su
-                JOIN 
-                    Enrollment e ON su.student_id = e.student_id
-                JOIN 
-                    Section s ON e.section_id = s.section_id
-                JOIN 
-                    Course c ON s.course_number = c.course_number
-                WHERE 
-                    su.username = :username
-                GROUP BY 
-                    su.username";
-
-
+        $sql = "SELECT * FROM AcademicInformation WHERE username = :username";
 
         // Execute the query
         $result_array = execute_sql_in_oracle($sql, [':username' => $username]);
@@ -159,23 +136,7 @@ $username = $_GET["username"];
         echo "</table>";
 
         // For course information details
-        $sql = "SELECT 
-            s.section_id,
-            c.course_number,
-            c.course_title,
-            s.semester,
-            c.credit_hours,
-            e.grade
-        FROM 
-            StudentUsers su
-        JOIN 
-            Enrollment e ON su.student_id = e.student_id
-        JOIN 
-            Section s ON e.section_id = s.section_id
-        JOIN 
-            Course c ON s.course_number = c.course_number
-        WHERE 
-            su.username = :username";
+        $sql = "SELECT section_id, course_number, course_title, semester, credit_hours, grade FROM SectionDetails WHERE username = :username";
 
         // Execute the query
         $result_array = execute_sql_in_oracle($sql, [':username' => $username]);
