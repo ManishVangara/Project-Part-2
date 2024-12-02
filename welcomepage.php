@@ -22,7 +22,7 @@ $result_array = execute_sql_in_oracle($sql);
 $result = $result_array["flag"];
 $cursor = $result_array["cursor"];
 
-if ($result == false) {
+if ($result == false){
   echo "Error fetching username from UserSessions.";
 } else {
   // Fetch the username

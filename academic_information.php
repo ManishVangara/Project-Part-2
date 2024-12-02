@@ -97,37 +97,53 @@ $username = $_GET["username"];
 </head>
 <body>
     <header>
-        <h1>Student Dashboard</h1>
+        <h1>Academic Information</h1>
     </header>
 
     <div class="container">
         <h2>Welcome <?php echo $username; ?></h2>
 
         <?php
-        // Query to collect student personal information
+        // Query to collect student academic information
 
-        $sql = "SELECT u.username, u.first_name, u.last_name, su.address, su.student_type, su.probation_status, su.student_id, 
-                CASE WHEN su.student_type = 0 
-                    THEN (SELECT standing FROM UnderGrad WHERE student_id = su.student_id) 
-                    ELSE (SELECT concentration FROM Grad WHERE student_id = su.student_id) 
-                END AS status_or_concentration 
-                FROM Users u 
-                JOIN StudentUsers su ON u.username = su.username 
-                WHERE u.username = :username";
+        $sql = "SELECT 
+                    su.username,
+                    COUNT(e.enrollment_id) AS courses_completed,
+                    SUM(c.credit_hours) AS total_credit_hours,
+                    CASE 
+                        WHEN SUM(c.credit_hours) > 0 THEN 
+                            SUM(e.grade * c.credit_hours) / SUM(c.credit_hours)
+                        ELSE 
+                            NULL 
+                    END AS gpa
+                FROM 
+                    StudentUsers su
+                JOIN 
+                    Enrollment e ON su.student_id = e.student_id
+                JOIN 
+                    Section s ON e.section_id = s.section_id
+                JOIN 
+                    Course c ON s.course_number = c.course_number
+                WHERE 
+                    su.username = :username
+                GROUP BY 
+                    su.username";
+
+
 
         // Execute the query
         $result_array = execute_sql_in_oracle($sql, [':username' => $username]);
         $result = $result_array["flag"];
         $cursor = $result_array["cursor"];
 
-        if ($result == false) {
+        if ($result == false){
             display_oracle_error_message($cursor);
             die("Client Query Failed.");
         }
 
         // Display the query results
         echo "<table>";
-        echo "<tr><th>Username</th><th>First Name</th><th>Last Name</th><th>Address</th><th>Student Type</th><th>Probation Status</th><th>Student ID</th><th>Standing/Concentration</th><th>Update</th></tr>";
+        echo "<tr><th>Username</th><th>Courses Completed</th><th>Total Credit hours</th><th>GPA</th></tr>";
 
         // Fetch the result from the cursor one by one
         while ($values = oci_fetch_array($cursor)) {
@@ -136,28 +152,59 @@ $username = $_GET["username"];
                  "<td>" . htmlspecialchars($values[1]) . "</td>" .
                  "<td>" . htmlspecialchars($values[2]) . "</td>" .
                  "<td>" . htmlspecialchars($values[3]) . "</td>" .
-                 "<td>" . ($values[4] == 0 ? 'Undergrad' : 'Grad') . "</td>" .
-                 "<td>" . ($values[5] ? htmlspecialchars($values[5]) : 'Not applicable') . "</td>" .
-                 "<td>" . htmlspecialchars($values[6]) . "</td>" .
-                 "<td>" . htmlspecialchars($values[7]) . "</td>" .
-                 "<td><a href=\"user_update.php?sessionid=$sessionid&username=" . urlencode($values[0]) . "\" class=\"update-link\">Update</a></td>" .
                  "</tr>";
         }
-
-        // Free the statement
+        
         oci_free_statement($cursor);
         echo "</table>";
+
+        // For course information details
+        $sql = "SELECT 
+            s.section_id,
+            c.course_number,
+            c.course_title,
+            s.semester,
+            c.credit_hours,
+            e.grade
+        FROM 
+            StudentUsers su
+        JOIN 
+            Enrollment e ON su.student_id = e.student_id
+        JOIN 
+            Section s ON e.section_id = s.section_id
+        JOIN 
+            Course c ON s.course_number = c.course_number
+        WHERE 
+            su.username = :username";
+
+        // Execute the query
+        $result_array = execute_sql_in_oracle($sql, [':username' => $username]);
+        $result = $result_array["flag"];
+        $cursor = $result_array["cursor"];
+
+        if ($result == false) {
+            echo "<p>Error retrieving data. Please try again later.</p>";
+        } else {
+            echo "<table>";
+            echo "<thead><tr><th>Section ID</th><th>Course Number</th><th>Course Title</th><th>Semester</th><th>Credits</th><th>Grade</th></tr></thead>";
+            echo "<tbody>";
+
+            while ($values = oci_fetch_array($cursor)) {
+                echo "<tr>" . 
+                     "<td>" . htmlspecialchars($values[0]) . "</td>" .
+                     "<td>" . htmlspecialchars($values[1]) . "</td>" .
+                     "<td>" . htmlspecialchars($values[2]) . "</td>" .
+                     "<td>" . htmlspecialchars($values[3]) . "</td>" .
+                     "<td>" . htmlspecialchars($values[4]) . "</td>" .
+                     "<td>" . htmlspecialchars($values[5]) . "</td>" .
+                     "</tr>";
+            }
+
+        }
+        oci_free_statement($cursor);
+        echo "</table>";
+
         ?>
 
-        <form action="changepassword.php" method="get" style="display:inline;">
-            <input type="hidden" name="sessionid" value="<?php echo htmlspecialchars($sessionid); ?>">
-            <button type="submit" class="button">Change Password</button>
-        </form>
-
-        <form action="logout_action.php" method="get" style="display:inline;">
-            <input type="hidden" name="sessionid" value="<?php echo htmlspecialchars($sessionid); ?>">
-            <button type="submit" class="button">Logout</button>
-        </form>
-    </div>
+    </div>   
 </body>
-</html>
