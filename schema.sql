@@ -114,6 +114,52 @@ CREATE TABLE Enrollment(
     CONSTRAINT fk_enrollment_section FOREIGN KEY (section_id) REFERENCES Section(section_id) ON DELETE CASCADE
 );
 
+---------------------------------------- VIEWS ----------------------------------------
+
+-- Academic information view
+CREATE VIEW AcademicInformation AS
+SELECT 
+    su.username,
+    su.student_id,
+    COUNT(e.enrollment_id) AS courses_completed,
+    SUM(c.credit_hours) AS total_credit_hours,
+    CASE 
+        WHEN SUM(c.credit_hours) > 0 THEN 
+            SUM(e.grade * c.credit_hours) / SUM(c.credit_hours)
+        ELSE 
+            NULL 
+    END AS gpa
+FROM 
+    StudentUsers su
+JOIN 
+    Enrollment e ON su.student_id = e.student_id
+JOIN 
+    Section s ON e.section_id = s.section_id
+JOIN 
+    Course c ON s.course_number = c.course_number
+GROUP BY 
+    su.username, su.student_id;
+
+-- Section details view
+CREATE VIEW SectionDetails AS
+SELECT 
+    su.username,
+    s.section_id,
+    c.course_number,
+    c.course_title,
+    s.semester,
+    c.credit_hours,
+    e.grade
+FROM 
+    StudentUsers su
+JOIN 
+    Enrollment e ON su.student_id = e.student_id
+JOIN 
+    Section s ON e.section_id = s.section_id
+JOIN 
+    Course c ON s.course_number = c.course_number;
+
+
 ---------------------------------------- TRIGGERS ----------------------------------------
 -- DROP TRIGGER IF EXISTS student_id_trigger;
 -- DROP TRIGGER IF EXISTS student_type_trigger;
