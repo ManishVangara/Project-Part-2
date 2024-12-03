@@ -16,7 +16,7 @@ DROP TABLE Course CASCADE CONSTRAINTS;
 
 -- Users table (Parent)
 CREATE TABLE Users(
-    username VARCHAR2(10) PRIMARY KEY,
+    username VARCHAR2(20) PRIMARY KEY,
     first_name VARCHAR2(50) NOT NULL,
     last_name VARCHAR2(50) NOT NULL,
     password VARCHAR2(12) NOT NULL,
@@ -28,7 +28,7 @@ CREATE TABLE Users(
 -- Student users table
 CREATE TABLE StudentUsers(
     student_id VARCHAR2(10) PRIMARY KEY,
-    username VARCHAR2(10),
+    username VARCHAR2(20),
     admission_date DATE NOT NULL,
     address VARCHAR2(50) NOT NULL,
     student_type NUMBER(1) CHECK (student_type IN (0, 1)) NOT NULL,
@@ -52,7 +52,7 @@ CREATE TABLE Grad(
 
 -- Admin Users table
 CREATE TABLE AdminUsers(
-    username VARCHAR2(10) PRIMARY KEY,
+    username VARCHAR2(20) PRIMARY KEY,
     start_date DATE NOT NULL,
     CONSTRAINT fk_admin_user FOREIGN KEY (username) REFERENCES Users(username) ON DELETE CASCADE
 );
@@ -60,7 +60,7 @@ CREATE TABLE AdminUsers(
 
 -- Student Admin Users table
 CREATE TABLE StudentAdminUsers(
-    username VARCHAR2(10) PRIMARY KEY,
+    username VARCHAR2(20) PRIMARY KEY,
     admission_date DATE NOT NULL,
     start_date DATE NOT NULL,
     CONSTRAINT fk_student_admin_user FOREIGN KEY (username) REFERENCES Users(username) ON DELETE CASCADE
@@ -72,7 +72,7 @@ CREATE TABLE StudentAdminUsers(
 CREATE TABLE UserSessions(
     sessionid VARCHAR2(32) PRIMARY KEY,
     sessiondate DATE NOT NULL,
-    username VARCHAR2(10),
+    username VARCHAR2(20),
     CONSTRAINT fk_user_session FOREIGN KEY (username) REFERENCES Users(username) ON DELETE CASCADE
 );
 
